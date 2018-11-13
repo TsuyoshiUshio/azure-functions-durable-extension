@@ -1713,6 +1713,60 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             }
         }
 
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public async Task GetStatus_ShowInputFalse()
+        {
+            using (JobHost host = TestHelpers.GetJobHost(this.loggerProvider, nameof(this.GetStatus_ShowInputFalse), false))
+            {
+                await host.StartAsync();
+
+                var client = await host.StartOrchestratorAsync(nameof(TestOrchestrations.Counter), 1, this.output);
+
+                DurableOrchestrationStatus status = await client.GetStatusAsync(showHistory: false, showHistoryOutput: false, showInput: false);
+                Assert.True(string.IsNullOrEmpty(status.Input.ToString()));
+            }
+        }
+
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public async Task GetStatus_ShowInputDefault()
+        {
+            using (JobHost host = TestHelpers.GetJobHost(this.loggerProvider, nameof(this.GetStatus_ShowInputDefault), false))
+            {
+                await host.StartAsync();
+
+                var client = await host.StartOrchestratorAsync(nameof(TestOrchestrations.Counter), 1, this.output);
+
+                DurableOrchestrationStatus status = await client.GetStatusAsync(showHistory: false, showHistoryOutput: false);
+                Assert.Equal("1", status.Input.ToString());
+            }
+        }
+
+        [Fact]
+        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
+        public async Task Deserialize_DurableOrchestrationStatus()
+        {
+            using (JobHost host = TestHelpers.GetJobHost(this.loggerProvider, nameof(this.Deserialize_DurableOrchestrationStatus), false))
+            {
+                await host.StartAsync();
+
+                string instanceId = Guid.NewGuid().ToString();
+                DurableOrchestrationStatus input = new DurableOrchestrationStatus();
+                var client = await host.StartOrchestratorAsync(
+                    nameof(TestOrchestrations.GetDurableOrchestrationStatus),
+                    input,
+                    this.output);
+                DurableOrchestrationStatus desereliazedStatus = await client.WaitForCompletionAsync(TimeSpan.FromSeconds(30), this.output);
+
+                Assert.NotNull(desereliazedStatus);
+                Assert.Equal(OrchestrationRuntimeStatus.Completed, desereliazedStatus.RuntimeStatus);
+                Assert.True(desereliazedStatus.LastUpdatedTime > desereliazedStatus.CreatedTime);
+
+                await host.StopAsync();
+            }
+        }
+
         /// <summary>
         /// End-to-end test which validates that Activity function can get an instance of HttpManagementPayload and return via the orchestrator.
         /// </summary>

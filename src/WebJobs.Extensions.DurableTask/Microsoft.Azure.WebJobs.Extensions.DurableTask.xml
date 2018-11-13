@@ -315,6 +315,27 @@
             The type of a function.
             </summary>
         </member>
+        <member name="T:Microsoft.Azure.WebJobs.Extensions.DurableTask.HttpCreationPayload">
+            <summary>
+            Data structure containing orchestration instance creation HTTP endpoints.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Azure.WebJobs.Extensions.DurableTask.HttpCreationPayload.CreateNewInstancePostUri">
+            <summary>
+            Gets the HTTP POST orchestration instance creation endpoint URL.
+            </summary>
+            <value>
+            The HTTP URL for creating a new orchestration instance.
+            </value>
+        </member>
+        <member name="P:Microsoft.Azure.WebJobs.Extensions.DurableTask.HttpCreationPayload.CreateAndWaitOnNewInstancePostUri">
+            <summary>
+            Gets the HTTP POST orchestration instance create-and-wait endpoint URL.
+            </summary>
+            <value>
+            The HTTP URL for creating a new orchestration instance and waiting on its completion.
+            </value>
+        </member>
         <member name="T:Microsoft.Azure.WebJobs.Extensions.DurableTask.HttpManagementPayload">
             <summary>
             Data structure containing status, terminate and send external event HTTP endpoints.
@@ -535,13 +556,16 @@
         <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.RewindAsync(System.String,System.String)">
             <inheritdoc />
         </member>
-        <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.String,System.Boolean,System.Boolean)">
+        <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.String,System.Boolean,System.Boolean,System.Boolean)">
             <inheritdoc />
         </member>
         <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
         <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.DateTime,System.Nullable{System.DateTime},System.Collections.Generic.IEnumerable{Microsoft.Azure.WebJobs.OrchestrationRuntimeStatus},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.DateTime,System.Nullable{System.DateTime},System.Collections.Generic.IEnumerable{Microsoft.Azure.WebJobs.OrchestrationRuntimeStatus},System.Int32,System.String,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
         <member name="T:Microsoft.Azure.WebJobs.DurableOrchestrationClientBase">
@@ -725,13 +749,14 @@
             <param name="showHistory">Boolean marker for including execution history in the response.</param>
             <returns>Returns a task which completes when the status has been fetched.</returns>
         </member>
-        <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClientBase.GetStatusAsync(System.String,System.Boolean,System.Boolean)">
+        <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClientBase.GetStatusAsync(System.String,System.Boolean,System.Boolean,System.Boolean)">
             <summary>
             Gets the status of the specified orchestration instance.
             </summary>
             <param name="instanceId">The ID of the orchestration instance to query.</param>
             <param name="showHistory">Boolean marker for including execution history in the response.</param>
             <param name="showHistoryOutput">Boolean marker for including input and output in the execution history response.</param>
+            <param name="showInput">If set, fetch and return the input for the orchestration instance.</param>
             <returns>Returns a task which completes when the status has been fetched.</returns>
         </member>
         <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClientBase.GetStatusAsync(System.Threading.CancellationToken)">
@@ -750,6 +775,21 @@
             <param name="runtimeStatus">Return orchestration instances which matches the runtimeStatus.</param>
             <param name="cancellationToken">Cancellation token that can be used to cancel the status query operation.</param>
             <returns>Returns orchestration status for all instances.</returns>
+        </member>
+        <member name="M:Microsoft.Azure.WebJobs.DurableOrchestrationClientBase.GetStatusAsync(System.DateTime,System.Nullable{System.DateTime},System.Collections.Generic.IEnumerable{Microsoft.Azure.WebJobs.OrchestrationRuntimeStatus},System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Gets the status of all orchestration instances with paging that match the specified conditions.
+            </summary>
+            <remarks>
+            This is limited to <see cref="T:Microsoft.Azure.WebJobs.Extensions.DurableTask.HttpApiHandler"/> and it will not be published to external clients.
+            </remarks>
+            <param name="createdTimeFrom">Return orchestration instances which were created after this DateTime.</param>
+            <param name="createdTimeTo">Return orchestration instances which were created before this DateTime.</param>
+            <param name="runtimeStatus">Return orchestration instances which matches the runtimeStatus.</param>
+            <param name="pageSize">Number of records per one request.</param>
+            <param name="continuationToken">ContinuationToken of the pager.</param>
+            <param name="cancellationToken">Cancellation token that can be used to cancel the status query operation.</param>
+            <returns>Returns each page of orchestration status for all instances and continuation token of next page.</returns>
         </member>
         <member name="T:Microsoft.Azure.WebJobs.DurableOrchestrationContext">
             <summary>
@@ -1231,7 +1271,7 @@
             </summary>
             <remarks>
             An external client can fetch the status of an orchestration instance using
-            <see cref="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.String,System.Boolean,System.Boolean)"/>.
+            <see cref="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.String,System.Boolean,System.Boolean,System.Boolean)"/>.
             </remarks>
         </member>
         <member name="P:Microsoft.Azure.WebJobs.DurableOrchestrationStatus.Name">
@@ -1316,7 +1356,7 @@
             <remarks>
             The history log can be large and is therefore <c>null</c> by default.
             It is populated only when explicitly requested in the call to
-            <see cref="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.String,System.Boolean,System.Boolean)"/>.
+            <see cref="M:Microsoft.Azure.WebJobs.DurableOrchestrationClient.GetStatusAsync(System.String,System.Boolean,System.Boolean,System.Boolean)"/>.
             </remarks>
             <value>
             The output as a <c>JArray</c> object or <c>null</c>.

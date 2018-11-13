@@ -181,10 +181,14 @@ namespace Microsoft.Azure.WebJobs
         }
 
         /// <inheritdoc />
-        public override async Task<DurableOrchestrationStatus> GetStatusAsync(string instanceId, bool showHistory = false, bool showHistoryOutput = false)
+        public override async Task<DurableOrchestrationStatus> GetStatusAsync(string instanceId, bool showHistory = false, bool showHistoryOutput = false, bool showInput = true)
         {
-            OrchestrationState state = await this.client.GetOrchestrationStateAsync(instanceId);
-            if (state?.OrchestrationInstance == null)
+            // TODO this cast is to avoid to change DurableTask.Core. Change it to use TaskHubClient.
+            var storageService = (AzureStorageOrchestrationService)this.client.ServiceClient;
+            IList<OrchestrationState> stateList = await storageService.GetOrchestrationStateAsync(instanceId, allExecutions: false, fetchInput: showInput);
+
+            OrchestrationState state = stateList?.FirstOrDefault();
+            if (state == null || state.OrchestrationInstance == null)
             {
                 return null;
             }
@@ -221,6 +225,33 @@ namespace Microsoft.Azure.WebJobs
             }
 
             return results;
+        }
+
+        /// <inheritdoc />
+        internal override async Task<OrchestrationStatusQueryResult> GetStatusAsync(
+            DateTime createdTimeFrom,
+            DateTime? createdTimeTo,
+            IEnumerable<OrchestrationRuntimeStatus> runtimeStatus,
+            int pageSize,
+            string continuationToken,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var serviceClient = (AzureStorageOrchestrationService)this.client.ServiceClient;
+            var statusContext = await serviceClient.GetOrchestrationStateAsync(createdTimeFrom, createdTimeTo, runtimeStatus.Select(x => (OrchestrationStatus)x), pageSize, continuationToken, cancellationToken);
+
+            var results = new List<DurableOrchestrationStatus>();
+            foreach (var state in statusContext.OrchestrationState)
+            {
+                results.Add(this.ConvertFrom(state));
+            }
+
+            var result = new OrchestrationStatusQueryResult
+            {
+                DurableOrchestrationState = results,
+                ContinuationToken = statusContext.ContinuationToken,
+            };
+
+            return result;
         }
 
         private static JToken ParseToJToken(string value)
