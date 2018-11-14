@@ -4,8 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DurableTask.AzureStorage;
 using DurableTask.Core;
 using DurableTask.Core.Common;
 using DurableTask.Core.Exceptions;
@@ -24,6 +26,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         private readonly DurableOrchestrationContext context;
 
         private Func<Task> functionInvocationCallback;
+
+        // correlation
+        public IEnumerable<MessageData> MessageDatas { get; set; }
 
         public TaskOrchestrationShim(
             DurableTaskExtension config,
@@ -59,6 +64,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             }
             // Correlation
             var current = Activity.Current;
+            var firstMessage = MessageDatas.FirstOrDefault();
+            current.SetParentId(firstMessage.TraceContext.ParentId); // TODO W3C Context.
 
             this.context.SetInnerContext(innerContext);
             this.context.SetInput(serializedInput);

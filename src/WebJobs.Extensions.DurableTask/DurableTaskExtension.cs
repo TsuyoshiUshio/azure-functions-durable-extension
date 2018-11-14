@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
@@ -18,6 +20,7 @@ using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
@@ -278,11 +281,28 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             TaskOrchestrationShim shim = (TaskOrchestrationShim)dispatchContext.GetProperty<TaskOrchestration>();
             DurableOrchestrationContext context = shim.Context;
 
+            // Correlation
+            var current = Activity.Current;
+
             OrchestrationRuntimeState orchestrationRuntimeState = dispatchContext.GetProperty<OrchestrationRuntimeState>();
 
             if (orchestrationRuntimeState.ParentInstance != null)
             {
                 context.ParentInstanceId = orchestrationRuntimeState.ParentInstance.OrchestrationInstance.InstanceId;
+            }
+
+            // Correlation
+            try
+            {
+                shim.MessageDatas =
+                    JsonConvert.DeserializeObject<List<MessageData>>(orchestrationRuntimeState.MessageDatas, new JsonSerializerSettings
+                    {
+                        TypeNameHandling = TypeNameHandling.Objects
+                    });
+            }
+            catch (Exception e)
+            {
+                var s = e;
             }
 
             context.InstanceId = orchestrationRuntimeState.OrchestrationInstance.InstanceId;
