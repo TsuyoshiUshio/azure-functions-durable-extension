@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using DurableTask.AzureStorage;
@@ -63,9 +64,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                 throw new InvalidOperationException($"The {nameof(this.functionInvocationCallback)} has not been assigned!");
             }
             // Correlation
-            var current = Activity.Current;
+            var current = Activity.Current; // new Activity is created but we can't set parentId
             var firstMessage = MessageDatas.FirstOrDefault();
-            current.SetParentId(firstMessage.TraceContext.ParentId); // TODO W3C Context.
+            var newActivity = new Activity(context.Name);
+            newActivity.SetParentId(firstMessage.TraceContext.ParentId); // Todo W3C
+            var property = typeof(Activity).GetProperty("Current", BindingFlags.Static | BindingFlags.Public);
+            property.SetValue(null, null); // Forcefully Clear the current Activity
+
+            newActivity.Start();
+
+            var current2 = Activity.Current;
 
             this.context.SetInnerContext(innerContext);
             this.context.SetInput(serializedInput);
