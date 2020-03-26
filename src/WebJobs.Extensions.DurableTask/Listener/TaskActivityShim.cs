@@ -2,6 +2,8 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using DurableTask.Core;
@@ -9,6 +11,7 @@ using DurableTask.Core.Common;
 using DurableTask.Core.Exceptions;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Executors;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 {
@@ -20,15 +23,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         private readonly DurableTaskExtension config;
         private readonly ITriggeredFunctionExecutor executor;
         private readonly string activityName;
+        private readonly ILogger logger;
 
         public TaskActivityShim(
             DurableTaskExtension config,
             ITriggeredFunctionExecutor executor,
-            string activityName)
+            string activityName,
+            ILogger logger)
         {
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.executor = executor ?? throw new ArgumentNullException(nameof(executor));
-
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             if (string.IsNullOrEmpty(activityName))
             {
                 throw new ArgumentNullException(nameof(activityName));
@@ -57,7 +62,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             FunctionResult result;
             try
             {
-                result = await this.executor.TryExecuteAsync(triggerInput, CancellationToken.None);
+                // correlation
+                var current = Activity.Current;
+                var correlationContext = CorrelationTraceContext.Current;
+                // MS_IgnoreActivity will suppress the Application Insights Telemetry Tracking on the Azure Functions Host.
+                var loggerScope = new Dictionary<string, object>
+                {
+                    {"MS_IgnoreActivity", null},
+                };
+
+                using (this.logger.BeginScope(loggerScope))
+                {
+                    result = await this.executor.TryExecuteAsync(triggerInput, CancellationToken.None);
+                }
+ 
             }
             catch (Exception e)
             {

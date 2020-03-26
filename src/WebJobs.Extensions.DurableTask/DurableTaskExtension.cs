@@ -16,6 +16,7 @@ using DurableTask.AzureStorage;
 using DurableTask.Core;
 using DurableTask.Core.History;
 using DurableTask.Core.Middleware;
+using ImpromptuInterface.Optimization;
 using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask.Correlation;
 using Microsoft.Azure.WebJobs.Host;
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         private bool isTaskHubWorkerStarted;
         private HttpClient durableHttpClient;
 
+        private ILogger logger;
         private ITelemetryActivator telemetryActivator;
 
 #if FUNCTIONS_V1
@@ -124,7 +126,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                 throw new ArgumentNullException(nameof(loggerFactory));
             }
 
-            ILogger logger = loggerFactory.CreateLogger(LoggerCategoryName);
+            this.logger = loggerFactory.CreateLogger(LoggerCategoryName);
 
             this.TraceHelper = new EndToEndTraceHelper(logger, this.Options.Tracing.TraceReplayEvents);
             this.LifeCycleNotificationHelper = lifeCycleNotificationHelper ?? this.CreateLifeCycleNotificationHelper();
@@ -410,6 +412,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         /// <returns>An activity shim that delegates execution to an activity function.</returns>
         TaskActivity INameVersionObjectManager<TaskActivity>.GetObject(string name, string version)
         {
+            // correlation
+            var current = Activity.Current;
+            var correlationContext = CorrelationTraceContext.Current;
+
             if (IsDurableHttpTask(name))
             {
                 return new TaskHttpActivityShim(this, this.durableHttpClient);
@@ -429,7 +435,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                 throw new InvalidOperationException(message);
             }
 
-            return new TaskActivityShim(this, info.Executor, name);
+            return new TaskActivityShim(this, info.Executor, name, this.logger);
         }
 
         private async Task OrchestrationMiddleware(DispatchMiddlewareContext dispatchContext, Func<Task> next)
@@ -468,31 +474,43 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                     message);
                 throw new InvalidOperationException(message);
             }
+            // Correlation
+            var activity = Activity.Current;
+            var correlationContext = CorrelationTraceContext.Current;
 
-            // 1. Start the functions invocation pipeline (billing, logging, bindings, and timeout tracking).
-            FunctionResult result = await info.Executor.TryExecuteAsync(
-                new TriggeredFunctionData
-                {
-                    TriggerValue = context,
+            // MS_IgnoreActivity will suppress the Application Insights Telemetry Tracking on the Azure Functions Host.
+            var loggerScope = new Dictionary<string, object>
+            {
+                {"MS_IgnoreActivity", null},
+            };
+
+            using (this.logger.BeginScope(loggerScope))
+            {
+                // 1. Start the functions invocation pipeline (billing, logging, bindings, and timeout tracking).
+                FunctionResult result = await info.Executor.TryExecuteAsync(
+                    new TriggeredFunctionData
+                    {
+                        TriggerValue = context,
 
 #pragma warning disable CS0618 // Approved for use by this extension
-                    InvokeHandler = async userCodeInvoker =>
-                    {
-                        // 2. Configure the shim with the inner invoker to execute the user code.
-                        shim.SetFunctionInvocationCallback(userCodeInvoker);
-
-                        // 3. Move to the next stage of the DTFx pipeline to trigger the orchestrator shim.
-                        await next();
-
-                        // 4. If an activity failed, indicate to the functions Host that this execution failed via an exception
-                        if (context.IsCompleted && context.OrchestrationException != null)
+                        InvokeHandler = async userCodeInvoker =>
                         {
-                            context.OrchestrationException.Throw();
-                        }
-                    },
+                            // 2. Configure the shim with the inner invoker to execute the user code.
+                            shim.SetFunctionInvocationCallback(userCodeInvoker);
+
+                            // 3. Move to the next stage of the DTFx pipeline to trigger the orchestrator shim.
+                            await next();
+
+                            // 4. If an activity failed, indicate to the functions Host that this execution failed via an exception
+                            if (context.IsCompleted && context.OrchestrationException != null)
+                            {
+                                context.OrchestrationException.Throw();
+                            }
+                        },
 #pragma warning restore CS0618
-                },
-                CancellationToken.None);
+                    },
+                    CancellationToken.None);
+            }
 
             if (!context.IsCompleted)
             {
