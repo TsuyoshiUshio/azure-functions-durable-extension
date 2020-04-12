@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using DurableTask.Core;
@@ -57,7 +58,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             FunctionResult result;
             try
             {
-                result = await this.executor.TryExecuteAsync(triggerInput, CancellationToken.None);
+                using (this.config.Logger.BeginScope(new Dictionary<string, object> { ["MS_IgnoreActivity"] = null }))
+                {
+                    result = await this.executor.TryExecuteAsync(triggerInput, CancellationToken.None);
+                }
             }
             catch (Exception e)
             {
