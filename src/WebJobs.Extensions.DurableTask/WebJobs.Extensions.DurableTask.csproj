@@ -6,8 +6,8 @@
     <RootNamespace>Microsoft.Azure.WebJobs.Extensions.DurableTask</RootNamespace>
     <MajorVersion>2</MajorVersion>
     <MinorVersion>2</MinorVersion>
-    <PatchVersion>14</PatchVersion>
-    <Version>2.2.14-alpha</Version>
+    <PatchVersion>15</PatchVersion>
+    <Version>2.2.15-alpha</Version>
     <FileVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</FileVersion>
     <AssemblyVersion>$(MajorVersion).0.0.0</AssemblyVersion>
     <Company>Microsoft Corporation</Company>
@@ -64,7 +64,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="2.2.0" />
     <PackageReference Include="Microsoft.Azure.DurableTask.Core.Telemetry" Version="2.2.4-alpha" />
-    <PackageReference Include="Microsoft.Azure.DurableTask.AzureStorage.Telemetry" Version="1.7.5-alpha" />
+    <PackageReference Include="Microsoft.Azure.DurableTask.AzureStorage.Telemetry" Version="1.7.6-alpha" />
     <PackageReference Include="Microsoft.ApplicationInsights" Version="2.12.2" />
     <PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.12.2" />
   </ItemGroup>
