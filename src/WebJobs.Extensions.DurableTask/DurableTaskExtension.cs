@@ -130,7 +130,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
             this.Logger = loggerFactory.CreateLogger(LoggerCategoryName);
 
-            this.TraceHelper = new EndToEndTraceHelper(Logger, this.Options.Tracing.TraceReplayEvents);
+            this.TraceHelper = new EndToEndTraceHelper(this.Logger, this.Options.Tracing.TraceReplayEvents);
             this.LifeCycleNotificationHelper = lifeCycleNotificationHelper ?? this.CreateLifeCycleNotificationHelper();
             this.durabilityProviderFactory = orchestrationServiceFactory;
             this.defaultDurabilityProvider = this.durabilityProviderFactory.GetDurabilityProvider();
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
             this.DataConverter = new MessagePayloadDataConverter(messageSerializerSettingsFactory, errorSerializerSettingsFactory);
 
-            this.HttpApiHandler = new HttpApiHandler(this, Logger);
+            this.HttpApiHandler = new HttpApiHandler(this, this.Logger);
 
 #if !FUNCTIONS_V1
             // The RPC server is started when the extension is initialized.
