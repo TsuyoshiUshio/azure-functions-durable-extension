@@ -60,6 +60,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Correlation
                 durableTaskOptions.Tracing.DistributedTracingProtocol == Protocol.W3CTraceContext.ToString()
                     ? Protocol.W3CTraceContext
                     : Protocol.HttpCorrelationProtocol;
+            CorrelationSettings.Current.TasKHubClientRequestTracking = false;
+            CorrelationSettings.Current.TaskActivityRequestTracking = false;
         }
 
         private void SetUpTelemetryCallbacks()
