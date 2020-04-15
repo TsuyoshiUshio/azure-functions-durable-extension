@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using DurableTask.Core;
@@ -58,7 +59,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             FunctionResult result;
             try
             {
-                using (this.config.Logger.BeginScope(new Dictionary<string, object> { ["MS_IgnoreActivity"] = null }))
+#if !FUNCTIONS_V1
+                var activity = Activity.Current;
+#endif
+                using (this.config.Logger.BeginScope(new Dictionary<string, object> { ["MS_TrackActivity"] = null }))
                 {
                     result = await this.executor.TryExecuteAsync(triggerInput, CancellationToken.None);
                 }

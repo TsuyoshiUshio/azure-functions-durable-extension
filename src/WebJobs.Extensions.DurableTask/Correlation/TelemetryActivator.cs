@@ -83,7 +83,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Correlation
                 (Exception e) =>
                 {
                     this.telemetryClient.TrackException(e);
-                });
+                },
+                null);
         }
 
         private void SetUpTelemetryClient()
